@@ -3,3 +3,17 @@ __pycache__/
 .pytest_cache/
 *.pyc
 runs/
+
+# Local experiment outputs and secrets
+*.pt
+*.pth
+*.ckpt
+*.log
+wandb/
+.tensorboard/
+.env
+.env.*
+.venv/
+.mypy_cache/
+.ruff_cache/
+.DS_Store

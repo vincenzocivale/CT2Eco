@@ -3,6 +3,19 @@
 Dataset sintetico di video ecografici da CT (TotalSegmentator) con supervisione geometrica e anatomica 3D in stile D4RT.
 La rete riceve solo i frame; le etichette vengono dalla CT e dalle pose della sonda.
 
+## Stato della ricerca (18 ottobre 2026)
+
+Il prototipo US-D4RT originale descritto sotto e il **Local Stream** successivo sono esperimenti distinti. I primi tentativi con US-D4RT non hanno dimostrato l'uso affidabile delle immagini; la successiva CNN spaziotemporale L1 ha invece appreso il moto locale. Un decoder a query con L1 congelato (Gate T1) migliora rispetto ai controlli senza pretraining. **Il Global Stream non è ancora implementato né validato.**
+
+Aggiornamento L1 v1.1: con training più lungo e normalizzazione per frame l'errore locale scende da 0.31 a 0.16 mm ed è indipendente dalla lunghezza della clip. Sulla deriva degli sweep interi l'ostacolo principale è il segno dell'elevazione, che il solo modello locale non osserva (vedi [RESULTS §6](docs/RESULTS.md)). Prossimo passo: Gate G0 del Global Stream.
+
+- [Indice della documentazione corrente](docs/README.md)
+- [Architettura e convenzioni geometriche](docs/ARCHITECTURE.md)
+- [Risultati sperimentali consolidati](docs/RESULTS.md)
+- [Riproducibilità e comandi](docs/REPRODUCIBILITY.md)
+- [Decisioni, limitazioni e roadmap](docs/DECISIONS.md)
+- [Registro storico US-D4RT](EXPERIMENTS.md)
+
 ## Setup
 
 ```bash

@@ -20,6 +20,7 @@ from ct2eco.render import render_sweep  # noqa: E402
 from ct2eco.sweep import TARGETS, make_trajectory  # noqa: E402
 
 MAX_AIR = 0.5  # reject sweeps whose frames are on average more than half air (probe off the body)
+MAX_FRAME_AIR = 0.9  # pure-motion sweeps keep a fixed skin anchor and can drift off the body: no near-empty frame allowed
 
 
 def parse(argv):
@@ -36,7 +37,8 @@ def parse(argv):
     p.add_argument("--require", default="liver", help="only use subjects where this structure is segmented")
     p.add_argument("--require-whole", action="store_true", help="... and not cut by any face of the CT volume")
     p.add_argument("--require-min-ml", type=float, default=0, help="... and at least this volume")
-    p.add_argument("--motion", default="random", choices=["random", "lateral", "elevational"], help="see sweep.make_trajectory")
+    p.add_argument("--motion", default="random", choices=["random", "lateral", "elevational",
+                                                       "elevational_pure", "rot_x", "rot_y", "rot_z"], help="see sweep.make_trajectory")
     p.add_argument("--targets", nargs="+", default=TARGETS, help="organs the sweeps are centred on")
     p.add_argument("--no-ct", action="store_true", help="impedance from labels only (SonoGym if_use_ct=False)")
     p.add_argument("--beam-fwhm-mm", type=float, default=0.0, help="elevational beam width; 0 = thin plane (SonoGym)")
@@ -109,7 +111,9 @@ def main(argv=None):
                     continue
                 frames, labels = render_sweep(case, poses, a.image_size, [a.spacing_mm] * 2, seed, not a.no_ct, a.device,
                                               a.beam_fwhm_mm, a.beam_slices)
-                if (labels == BACKGROUND).mean() <= MAX_AIR:
+                air = labels == BACKGROUND
+                if air.mean() <= MAX_AIR and (a.motion in ("random", "lateral", "elevational")
+                                              or air.reshape(len(air), -1).mean(1).max() <= MAX_FRAME_AIR):
                     break
             else:
                 raise RuntimeError(f"{case.id}: no valid sweep after 50 attempts")

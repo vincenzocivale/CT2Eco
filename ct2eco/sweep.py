@@ -42,8 +42,12 @@ def make_trajectory(case, rng, n_frames, targets=TARGETS, motion="random"):
 
     Elevation, lateral drift, tilt/yaw/rock all follow independent random paths, so the frame gap carries no
     information about the motion: the model has to read it from the images.
-    motion="lateral" / "elevational": sanity datasets, one pure translation at a constant random speed per sweep
-    (-2..2 mm/frame), no rotation. The speed is only observable from the images.
+    ``lateral`` and legacy ``elevational`` preserve the original re-projection
+    of the probe to the skin, which can introduce a depth translation.
+    ``elevational_pure`` translates along local z with fixed rotation and an
+    initial skin anchor, while ``rot_x/y/z`` rotate around a fixed anchor.
+    These latter motions are idealized controlled sweeps, not contact-correct
+    acquisitions; they are used only to diagnose identifiability.
     """
     view = str(rng.choice(list(VIEWS)))
     R0 = VIEWS[view]
@@ -51,15 +55,30 @@ def make_trajectory(case, rng, n_frames, targets=TARGETS, motion="random"):
     elev = random_path(rng, n_frames, rng.uniform(5, 25))  # sweep extent up to 50 mm
     drift = random_path(rng, n_frames, rng.uniform(0, 8))
     angles = {ax: random_path(rng, n_frames, lim) for ax, lim in (("x", 15), ("y", 10), ("z", 10))}
+    allowed = {"random", "lateral", "elevational", "elevational_pure", "rot_x", "rot_y", "rot_z"}
+    if motion not in allowed:
+        raise ValueError(f"Unknown motion mode {motion!r}; expected one of {sorted(allowed)}")
     if motion != "random":
-        line = rng.uniform(-2, 2) * (np.arange(n_frames) - (n_frames - 1) / 2)
         zero = np.zeros(n_frames)
-        elev, drift = (zero, line) if motion == "lateral" else (line, zero)
-        angles = {ax: zero for ax in angles}
+        elev, drift = zero.copy(), zero.copy()
+        angles = {ax: zero.copy() for ax in angles}
+        if motion in ("lateral", "elevational", "elevational_pure"):
+            line = rng.uniform(-2, 2) * (np.arange(n_frames) - (n_frames - 1) / 2)
+            if motion == "lateral":
+                drift = line
+            else:
+                elev = line
+        else:
+            # degrees per frame, matching ct2eco.geometry.rotation convention
+            angles[motion[-1]] = rng.uniform(-1.5, 1.5) * (np.arange(n_frames) - (n_frames - 1) / 2)
+    pure = motion in ("elevational_pure", "rot_x", "rot_y", "rot_z")
+    anchor = skin_point(case, centre[0], centre[2]) if pure else None
+    if pure and anchor is None:
+        return None, view
     poses = np.tile(np.eye(4), (n_frames, 1, 1))
     for i in range(n_frames):
         c = centre + R0[:, 2] * elev[i] + R0[:, 0] * drift[i]
-        p = skin_point(case, c[0], c[2])
+        p = anchor + R0[:, 2] * elev[i] + R0[:, 0] * drift[i] if pure else skin_point(case, c[0], c[2])
         if p is None:
             return None, view
         poses[i, :3, :3] = R0 @ rotation("x", angles["x"][i]) @ rotation("y", angles["y"][i]) @ rotation("z", angles["z"][i])

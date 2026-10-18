@@ -1,5 +1,7 @@
 # Registro esperimenti
 
+> **Archivio storico (US-D4RT v0.x).** Questo registro conserva i risultati del modello iniziale. Per Local Stream L1/L2b/L3 e i Gate T0/T1, consultare [docs/RESULTS.md](docs/RESULTS.md) e [docs/DECISIONS.md](docs/DECISIONS.md). Non confrontare direttamente metriche e supporti dei due protocolli.
+
 Errori medi in mm sul **val** (3 CT mai viste), query fisse nei primi 16 frame di ogni sweep. Train: 14 CT, 112 sweep, 3000 step, batch 4.
 Baseline "ferma" = la sonda non si è mossa (punto sorgente con z = 0). |z| = errore su |z| (ignora il verso).
 
